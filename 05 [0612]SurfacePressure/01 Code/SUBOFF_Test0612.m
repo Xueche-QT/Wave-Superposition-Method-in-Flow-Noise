@@ -24,10 +24,6 @@ clear;
 OriginPoint_Coord = readtable("Point_Coord.txt");                                       % 读取节点坐标
 OriginPoint_Pressure = readtable("p.txt");                                              % 读取节点时域压力
 
-% OriginPoint_Pressure_Array = OriginPoint_Pressure{:, 1 : 1767};
-% OriginPoint_Pressure = OriginPoint_Pressure(:, 1 : 1767);
-% dlmwrite("Point_Pressure_1767.txt", OriginPoint_Pressure_Array, 'delimiter', '\t', 'precision', '%.6f');
-
 %------------------------------------------------------------------------------------------
 % 预处理 1——在[节点坐标]中删除(0,0,0)节点
 %------------------------------------------------------------------------------------------
@@ -96,17 +92,6 @@ OriginPoint_Y = OriginPoint_Coord{:, 2};
 OriginPoint_Z = OriginPoint_Coord{:, 3};
 OriginPoint_Coord_Array = [OriginPoint_X, OriginPoint_Y, OriginPoint_Z];
 
-% % 打开文件进行写入
-% fileID = fopen('output.txt','w');
-% 
-% % 遍历数据并写入文件
-% for i = 1:size(OriginPoint_Coord_Array,1)
-%     fprintf(fileID, '(%f %f %f)\n', OriginPoint_Coord_Array(i,1), OriginPoint_Coord_Array(i,2), OriginPoint_Coord_Array(i,3));
-% end
-% 
-% % 关闭文件
-% fclose(fileID);    
-
 OriginPoint_Pressure_New.Properties.VariableNames = ["Time", cellstr(strcat("Point_", string(1:OriginPoint_Num)))];
 Time_Interval = OriginPoint_Pressure_New{2, 1} - OriginPoint_Pressure_New{1, 1};
 Fs = 1 / Time_Interval;                                                                                 % 采样频率
@@ -116,6 +101,13 @@ Fs = 1 / Time_Interval;                                                         
 % 介质参数
 Rho_Medium = 1000;                                                                                      % 介质密度，默认为水
 SoundVelocity_Medium = 1500;                                                                            % 介质声速，默认为水中的声速
+
+figure;
+plot(OriginPoint_Pressure_New{:, 1}, OriginPoint_Pressure_New{:, 2}, 'LineWidth', 1.5);
+hold on;
+plot(OriginPoint_Pressure_New{:, 1}, OriginPoint_Pressure_New{:, 3}, 'LineWidth', 1.5);
+plot(OriginPoint_Pressure_New{:, 1}, OriginPoint_Pressure_New{:, 4}, 'LineWidth', 1.5);
+hold off;
 
 %% ------------------------------【2 SUBOFF表面节点可视化】------------------------------
 %{
@@ -174,154 +166,162 @@ zlabel('Z');
 title('SUBOFF表面节点及外法向');
 whitebg('white');
 
-%% ------------------------------【4 迭代计算均方根误差最小值】------------------------------
-%{
-    通过缩比的方式，获得等效简单源的坐标，等效简单源数目和结构面离散节点数目一致
-    以[缩放系数]Scale_Factor为自变量，使用【最小二乘法】迭代求解均方根误差，得到误差最小的[缩放系数]
-%}
-
-OriginPoint_Fre_ScaleError = zeros(3, height(Data_Spectrum_Complex) - 1);                                   % 各个频率下(删去0Hz)的最佳缩放系数、最优均方根误差
-
-% for i = 2 : 1 : height(Data_Spectrum_Complex)                       % 遍历[频率范围]
-for i = 2 : 1 : 2
-    UpperBound = 1.0;               % 上界
-    LowerBound = 0.9;               % 下界
-    iterations = 8;                % 迭代次数
-    Scale_Factor_Opt = 0.0;         % 最佳缩放系数
-    Error_RMS_Opt = Inf;            % 最优均方根误差0
-
-    Calculate_Fre = Data_Spectrum_Complex{i, 1};                    % 计算频率，对应Data_Spectrum_Complex的第i行第1列
-    Calculate_Row = i;                                              % 计算行数，针对Data_Spectrum_Complex数组
-    Calculate_OriginPoint_Complex = Data_Spectrum_Complex{Calculate_Row, 2 : end}.';                        % 该[计算频率]下各个[节点压力]复数
-    Calculate_OriginPoint_ABS = Data_Spectrum_ABS{Calculate_Row, 2 : end}.';                                % 该[计算频率]下各个[节点压力]幅值
-    Calculate_Omega = 2 * pi * Calculate_Fre;                       % 该[计算频率]下[圆频率]
-    Calculate_k = Calculate_Omega / SoundVelocity_Medium;           % 该[计算频率]下[波数]
-    
-    disp("------------------------------------------------------------");
-    fprintf('Frequency %.2f\n', Calculate_Fre);
-    fprintf('\n');
-
-    for j = 1 : 1 : iterations                                      % 遍历[迭代次数]
-        Scale_Factor = (UpperBound + LowerBound) / 2;               % 取上界和下界的中点作为缩放系数
-        
-        Equiv_Simple_Source_X = Scale_Factor .* OriginPoint_X;      % 【等效简单源】X坐标
-        Equiv_Simple_Source_Y = Scale_Factor .* OriginPoint_Y;      % 【等效简单源】X坐标
-        Equiv_Simple_Source_Z = Scale_Factor .* OriginPoint_Z;      % 【等效简单源】X坐标
-        Equiv_Simple_Source_Coord = [Equiv_Simple_Source_X, Equiv_Simple_Source_Y, Equiv_Simple_Source_Z];  % 【等效简单源】X、Y、Z坐标
-        
-        % 基于[节点压力]反求[源强度矢量]
-        EquivReverse_Q = Fun_ReverseBuild_Q(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k, SoundVelocity_Medium, Rho_Medium, Calculate_OriginPoint_Complex);
-        % 基于[源强度矢量]反求[法向振速]
-        [EquivReverse_D, EquivReverse_U_normal] = Fun_ReverseBuild_D_U(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k, EquivReverse_Q, normals);
-        % 基于[法向振速]正求[源强度矢量]
-        [Equiv_D_Radiation, Equiv_Q_Radiation] = Fun_BuildEquiv_D_Q(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k, EquivReverse_U_normal, normals);
-        % 基于[源强度矢量]正求节点[辐射声压]
-        Equiv_P_Radiation = Fun_BuildEquiv_M_P(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k, SoundVelocity_Medium, Rho_Medium, Equiv_Q_Radiation);
-    
-        Equiv_P_Radiation_ABS = abs(Equiv_P_Radiation);             % 节点[辐射声压]幅值
-        Error_RMS = sqrt(mean((Equiv_P_Radiation_ABS - Calculate_OriginPoint_ABS).^2));                     % [均方根误差]
-        
-        disp("----------------------------");
-        fprintf('iteration %d\n', j);
-        fprintf('Scale_Factor %f\n', Scale_Factor);
-        fprintf('Error_RMS %e\n', Error_RMS);
-        fprintf('Min %e\n', min(Equiv_P_Radiation_ABS));
-        fprintf('Max %e\n', max(Equiv_P_Radiation_ABS));
-        fprintf('Mean %e\n', mean(Equiv_P_Radiation_ABS));
-        disp("----------------------------");
-    
-        if (Error_RMS < Error_RMS_Opt) && (max(Equiv_P_Radiation_ABS) > max(Calculate_OriginPoint_ABS))     % 判断标准
-            LowerBound = Scale_Factor;                              % 更换界限
-            if min(Equiv_P_Radiation_ABS) > min(Calculate_OriginPoint_ABS)
-                Error_RMS_Opt = Error_RMS;
-                Scale_Factor_Opt = Scale_Factor;
-            end
-        else
-            UpperBound = Scale_Factor;
-            if min(Equiv_P_Radiation_ABS) > min(Calculate_OriginPoint_ABS)
-                Error_RMS_Opt = Error_RMS;
-                Scale_Factor_Opt = Scale_Factor;
-            end
-        end
-    end
-    
-    fprintf('\n');
-    fprintf('Scale_Factor_Opt %f\n', Scale_Factor_Opt);
-    fprintf('Error_RMS_Opt %e\n', Error_RMS_Opt);
-    disp("------------------------------------------------------------");
-
-    % 存储各个频率下(删去0Hz)的最佳缩放系数、最优均方根误差
-    OriginPoint_Fre_ScaleError(1, i - 1) = Calculate_Fre;           % 计算频率
-    OriginPoint_Fre_ScaleError(2, i - 1) = Scale_Factor_Opt;        % 最佳缩放系数
-    OriginPoint_Fre_ScaleError(3, i - 1) = Error_RMS_Opt;           % 最优均方根误差
-
-end
-
-fprintf('\n');
-disp("************************************************************");
-disp("计算完成");
-disp(OriginPoint_Fre_ScaleError);
-disp("************************************************************");
-
-% writematrix(OriginPoint_Fre_ScaleError, "OriginPoint_Fre_ScaleError.xlsx");
-
-%% ------------------------------【4.1 测试：计算当前缩放系数下表面压力】------------------------------
-% Equiv_Simple_Source_X = Scale_Factor_Opt .* OriginPoint_X;      % 【等效简单源】X坐标
-% Equiv_Simple_Source_Y = Scale_Factor_Opt .* OriginPoint_Y;      % 【等效简单源】X坐标
-% Equiv_Simple_Source_Z = Scale_Factor_Opt .* OriginPoint_Z;      % 【等效简单源】X坐标
-% Equiv_Simple_Source_Coord = [Equiv_Simple_Source_X, Equiv_Simple_Source_Y, Equiv_Simple_Source_Z];  % 【等效简单源】X、Y、Z坐标
+% %% ------------------------------【4 迭代计算均方根误差最小值】------------------------------
+% %{
+%     通过缩比的方式，获得等效简单源的坐标，等效简单源数目和结构面离散节点数目一致
+%     以[缩放系数]Scale_Factor为自变量，使用【最小二乘法】迭代求解均方根误差，得到误差最小的[缩放系数]
+% %}
 % 
-% % 基于[节点压力]反求[源强度矢量]
-% EquivReverse_Q = Fun_ReverseBuild_Q(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k, SoundVelocity_Medium, Rho_Medium, Calculate_OriginPoint_Complex);
-% % 基于[源强度矢量]反求[法向振速]
-% [EquivReverse_D, EquivReverse_U_normal] = Fun_ReverseBuild_D_U(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k, EquivReverse_Q, normals);
-% % 基于[法向振速]正求[源强度矢量]
-% [Equiv_D_Radiation, Equiv_Q_Radiation] = Fun_BuildEquiv_D_Q(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k, EquivReverse_U_normal, normals);
-% % 基于[源强度矢量]正求节点[辐射声压]
-% Equiv_P_Radiation = Fun_BuildEquiv_M_P(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k, SoundVelocity_Medium, Rho_Medium, Equiv_Q_Radiation);
+% %{
+%     取Data_Spectrum_Complex前11列，即0~1000Hz，压力值设为每行的平均值
+% %}
+% Data_Spectrum_Complex_Partial = Data_Spectrum_Complex(1 : 11, :);
+% Data_Spectrum_Complex_PartialMean = Data_Spectrum_Complex_Partial;
+% for i = 2 : 1 : height(Data_Spectrum_Complex_PartialMean)
+%     for j = 2 : 1 : width(Data_Spectrum_Complex_PartialMean)
+%         Data_Spectrum_Complex_PartialMean{i, j} = mean(Data_Spectrum_Complex_Partial{i, 2 : end});
+%     end
+% end
+% Data_Spectrum_Abs_PartialMean = Data_Spectrum_Complex_PartialMean;
+% Data_Spectrum_Abs_PartialMean{2 : end, 2 : end} = abs(Data_Spectrum_Abs_PartialMean{2 : end, 2 : end});
 % 
-% Equiv_P_Radiation_ABS = abs(Equiv_P_Radiation);             % 节点[辐射声压]幅值
+% OriginPoint_Fre_ScaleError = zeros(3, height(Data_Spectrum_Complex_PartialMean) - 1);                                   % 各个频率下(删去0Hz)的最佳缩放系数、最优均方根误差
+% 
+% % for i = 2 : 1 : height(Data_Spectrum_Complex_PartialMean)                       % 遍历[频率范围]
+% for i = 2 : 1 : 2
+%     UpperBound = 1.0;               % 上界
+%     LowerBound = 0.9;               % 下界
+%     iterations = 10;                % 迭代次数
+%     Scale_Factor_Opt = 0.0;         % 最佳缩放系数
+%     Error_RMS_Opt = Inf;            % 最优均方根误差0
+% 
+%     Calculate_Fre = Data_Spectrum_Complex_PartialMean{i, 1};                    % 计算频率，对应Data_Spectrum_Complex的第i行第1列
+%     Calculate_Row = i;                                              % 计算行数，针对Data_Spectrum_Complex数组
+%     Calculate_OriginPoint_Complex = Data_Spectrum_Complex_PartialMean{Calculate_Row, 2 : end}.';                        % 该[计算频率]下各个[节点压力]复数
+%     Calculate_OriginPoint_ABS = Data_Spectrum_Abs_PartialMean{Calculate_Row, 2 : end}.';                                % 该[计算频率]下各个[节点压力]幅值
+%     Calculate_Omega = 2 * pi * Calculate_Fre;                       % 该[计算频率]下[圆频率]
+%     Calculate_k = Calculate_Omega / SoundVelocity_Medium;           % 该[计算频率]下[波数]
+%     
+%     disp("------------------------------------------------------------");
+%     fprintf('Frequency %.2f\n', Calculate_Fre);
+%     fprintf('\n');
+% 
+%     for j = 1 : 1 : iterations                                      % 遍历[迭代次数]
+%         Scale_Factor = (UpperBound + LowerBound) / 2;               % 取上界和下界的中点作为缩放系数
+%         
+%         Equiv_Simple_Source_X = Scale_Factor .* OriginPoint_X;      % 【等效简单源】X坐标
+%         Equiv_Simple_Source_Y = Scale_Factor .* OriginPoint_Y;      % 【等效简单源】X坐标
+%         Equiv_Simple_Source_Z = Scale_Factor .* OriginPoint_Z;      % 【等效简单源】X坐标
+%         Equiv_Simple_Source_Coord = [Equiv_Simple_Source_X, Equiv_Simple_Source_Y, Equiv_Simple_Source_Z];  % 【等效简单源】X、Y、Z坐标
+%         
+%         % 基于[节点压力]反求[源强度矢量]
+%         EquivReverse_Q = Fun_ReverseBuild_Q(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k, SoundVelocity_Medium, Rho_Medium, Calculate_OriginPoint_Complex);
+%         % 基于[源强度矢量]反求[法向振速]
+%         [EquivReverse_D, EquivReverse_U_normal] = Fun_ReverseBuild_D_U(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k, EquivReverse_Q, normals);
+%         % 基于[法向振速]正求[源强度矢量]
+%         [Equiv_D_Radiation, Equiv_Q_Radiation] = Fun_BuildEquiv_D_Q(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k, EquivReverse_U_normal, normals);
+%         % 基于[源强度矢量]正求节点[辐射声压]
+%         Equiv_P_Radiation = Fun_BuildEquiv_M_P(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k, SoundVelocity_Medium, Rho_Medium, Equiv_Q_Radiation);
+%     
+%         Equiv_P_Radiation_ABS = abs(Equiv_P_Radiation);             % 节点[辐射声压]幅值
+%         Error_RMS = sqrt(mean((Equiv_P_Radiation_ABS - Calculate_OriginPoint_ABS).^2));                     % [均方根误差]
+%         
+%         disp("----------------------------");
+%         fprintf('iteration %d\n', j);
+%         fprintf('Scale_Factor %f\n', Scale_Factor);
+%         fprintf('Error_RMS %e\n', Error_RMS);
+%         fprintf('Min %e\n', min(Equiv_P_Radiation_ABS));
+%         fprintf('Max %e\n', max(Equiv_P_Radiation_ABS));
+%         fprintf('Mean %e\n', mean(Equiv_P_Radiation_ABS));
+%         disp("----------------------------");
+%     
+%         if (Error_RMS < Error_RMS_Opt) && (max(Equiv_P_Radiation_ABS) > max(Calculate_OriginPoint_ABS))     % 判断标准
+%             LowerBound = Scale_Factor;                              % 更换界限
+%             Error_RMS_Opt = Error_RMS;
+%             Scale_Factor_Opt = Scale_Factor;
+%         else
+%             UpperBound = Scale_Factor;
+%             Error_RMS_Opt = Error_RMS;
+%             Scale_Factor_Opt = Scale_Factor;
+%         end
+%     end
+%     
+%     fprintf('\n');
+%     fprintf('Scale_Factor_Opt %f\n', Scale_Factor_Opt);
+%     fprintf('Error_RMS_Opt %e\n', Error_RMS_Opt);
+%     disp("------------------------------------------------------------");
+% 
+%     % 存储各个频率下(删去0Hz)的最佳缩放系数、最优均方根误差
+%     OriginPoint_Fre_ScaleError(1, i - 1) = Calculate_Fre;           % 计算频率
+%     OriginPoint_Fre_ScaleError(2, i - 1) = Scale_Factor_Opt;        % 最佳缩放系数
+%     OriginPoint_Fre_ScaleError(3, i - 1) = Error_RMS_Opt;           % 最优均方根误差
+% 
+% end
 
-%% ------------------------------【5 场点处辐射声压频谱】------------------------------
-%{
-    基于结构表面压力和最佳缩放系数，求解场点处辐射声压频谱
-%}
+%% ------------------------------【4 计算当前缩放系数下表面压力】------------------------------
+% 给定【缩放系数】，即距离
+Scale_Factor = 0.995313;
+
 % 辐射声压检测场点的位置
-FieldPoints = [0.5004, 1.07, 0];
-FieldPoints_Fre_P = zeros(3, width(OriginPoint_Fre_ScaleError));
+% FieldPoints = [0.5004, 1.07, 0];
+FieldPoints = [0.206, 0, 0];
 
-% for i = 1 : 1 : width(OriginPoint_Fre_ScaleError)
-for i = 1 : 1 : 1
-    Calculate_Fre_Current = OriginPoint_Fre_ScaleError(1, i);       % 计算频率
-    Scale_Factor_Current = OriginPoint_Fre_ScaleError(2, i);        % 最佳缩放系数
-    
-    disp("----------------------------");
+FieldPoints_Fre_P = zeros(3, height(Data_Spectrum_Complex));
+
+Equiv_Simple_Source_X = Scale_Factor .* OriginPoint_X;      % 【等效简单源】X坐标
+Equiv_Simple_Source_Y = Scale_Factor .* OriginPoint_Y;      % 【等效简单源】X坐标
+Equiv_Simple_Source_Z = Scale_Factor .* OriginPoint_Z;      % 【等效简单源】X坐标
+Equiv_Simple_Source_Coord = [Equiv_Simple_Source_X, Equiv_Simple_Source_Y, Equiv_Simple_Source_Z];  % 【等效简单源】X、Y、Z坐标
+
+% 给定简单源【等效源强度矢量矩阵】
+EquivReverse_Q_Scale = 5*10^(-4);
+for i = 2 : 1 : height(Data_Spectrum_Complex)
+% for i = 2 : 1 : 10
+    Calculate_Fre_Current = Data_Spectrum_Complex{i, 1};
+
+    disp("------------------------------------------------------------");
     fprintf('Frequency %.2f\n', Calculate_Fre_Current);
-    fprintf('Scale_Factor_Opt %f\n', Scale_Factor_Current);
-    disp("----------------------------");
-
-    Calculate_OriginPoint_ComplexCurrent = Data_Spectrum_Complex{i + 1, 2 : end}.';                        % 该[计算频率]下各个[节点压力]复数
-    Calculate_OriginPoint_ABSCurrent = Data_Spectrum_ABS{i + 1, 2 : end}.';                                % 该[计算频率]下各个[节点压力]幅值
+    disp("------------------------------------------------------------");
+    
+    Calculate_OriginPoint_ComplexCurrent = Data_Spectrum_Complex{i, 2 : end}.';                        % 该[计算频率]下各个[节点压力]复数
+    Calculate_OriginPoint_ABSCurrent = Data_Spectrum_ABS{i, 2 : end}.';                                % 该[计算频率]下各个[节点压力]幅值
     Calculate_Omega_Current = 2 * pi * Calculate_Fre_Current;                       % 该[计算频率]下[圆频率]
     Calculate_k_Current = Calculate_Omega_Current / SoundVelocity_Medium;           % 该[计算频率]下[波数]
 
-    Equiv_Simple_Source_XCurrent = Scale_Factor_Opt .* OriginPoint_X;      % 【等效简单源】X坐标
-    Equiv_Simple_Source_YCurrent = Scale_Factor_Opt .* OriginPoint_Y;      % 【等效简单源】X坐标
-    Equiv_Simple_Source_ZCurrent = Scale_Factor_Opt .* OriginPoint_Z;      % 【等效简单源】X坐标
-    Equiv_Simple_Source_CoordCurrent = [Equiv_Simple_Source_XCurrent, Equiv_Simple_Source_YCurrent, Equiv_Simple_Source_ZCurrent];  % 【等效简单源】X、Y、Z坐标
+    EquivReverse_Q = EquivReverse_Q_Scale .* Data_Spectrum_Complex{i , 2:end}';
+    
+    %------------------------------------------------------------------------------------------
+    % 预处理 ——    在[等效源强度矩阵]中找到幅值大于幅值均值20%的索引
+    %              大于1.2的取均值的1.2倍
+    %              小于0.8的取均值的0.8倍
+    %------------------------------------------------------------------------------------------
+    
+    Mean_Q_ABS = mean(abs(EquivReverse_Q));
+    Mean_Q_Com = mean((EquivReverse_Q));
+    for j = 1 : 1 : height(EquivReverse_Q)
+        if (abs(EquivReverse_Q(j)) / Mean_Q_ABS >= 1.5)
+            EquivReverse_Q(j) = 1.5 * Mean_Q_Com;
+        elseif (abs(EquivReverse_Q(j)) / Mean_Q_ABS <= 0.5)
+            EquivReverse_Q(j) = 0.5 * Mean_Q_Com;
+        else
+            EquivReverse_Q(j) = EquivReverse_Q(j);
+        end
+    end
 
-    % 基于[节点压力]反求[源强度矢量]
-    EquivReverse_QCurrent = Fun_ReverseBuild_Q(OriginPoint_Coord_Array, Equiv_Simple_Source_CoordCurrent, Calculate_k_Current, SoundVelocity_Medium, Rho_Medium, Calculate_OriginPoint_ComplexCurrent);
     % 基于[源强度矢量]反求[法向振速]
-    [EquivReverse_DCurrent, EquivReverse_U_normalCurrent] = Fun_ReverseBuild_D_U(OriginPoint_Coord_Array, Equiv_Simple_Source_CoordCurrent, Calculate_k_Current, EquivReverse_QCurrent, normals);
+    [EquivReverse_D, EquivReverse_U_normal] = Fun_ReverseBuild_D_U(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k_Current, EquivReverse_Q, normals);
     % 基于[法向振速]正求[源强度矢量]
-    [Equiv_D_RadiationCurrent, Equiv_Q_RadiationCurrent] = Fun_BuildEquiv_D_Q(OriginPoint_Coord_Array, Equiv_Simple_Source_CoordCurrent, Calculate_k_Current, EquivReverse_U_normalCurrent, normals);
-    % 基于[源强度矢量]正求场点处[辐射声压]
-    Equiv_P_RadiationCurrent = Fun_BuildEquiv_M_P(FieldPoints, Equiv_Simple_Source_CoordCurrent, Calculate_k_Current, SoundVelocity_Medium, Rho_Medium, Equiv_Q_RadiationCurrent);
+    [Equiv_D_Radiation, Equiv_Q_Radiation] = Fun_BuildEquiv_D_Q(OriginPoint_Coord_Array, Equiv_Simple_Source_Coord, Calculate_k_Current, EquivReverse_U_normal, normals);
+    % 基于[源强度矢量]正求节点[辐射声压]
+    Equiv_P_Radiation = Fun_BuildEquiv_M_P(FieldPoints, Equiv_Simple_Source_Coord, Calculate_k_Current, SoundVelocity_Medium, Rho_Medium, Equiv_Q_Radiation);
+
+    Equiv_P_Radiation_ABS = abs(Equiv_P_Radiation);             % 节点[辐射声压]幅值
 
     FieldPoints_Fre_P(1, i) = Calculate_Fre_Current;% 频率，排除了0Hz
-    FieldPoints_Fre_P(2, i) = Equiv_P_RadiationCurrent;% 复数声压
-    FieldPoints_Fre_P(3, i) = abs(Equiv_P_RadiationCurrent);% 幅值声压
+    FieldPoints_Fre_P(2, i) = Equiv_P_Radiation;% 复数声压
+    FieldPoints_Fre_P(3, i) = 20 * log10(Equiv_P_Radiation_ABS / (10^(-6)));% 幅值声压
+
+
 end
 
 figure;
