@@ -34,9 +34,9 @@ for i = 1 : Equiv_Simple_Source_Num
         r_difference = r_j - r_i;                                           % 位置矢量差(新的向量)
         r_distance = norm(r_difference);                                    % 两点间距离
 %         normal_j = r_j / norm(r_j);                                         
-        normal_j = Origin_Discrete_Node_Normal(i, :) / norm(Origin_Discrete_Node_Normal(i, :));                         % 【结构源】表面第 j 个离散节点的法向向量
+        normal_j = Origin_Discrete_Node_Normal(j, :) / norm(Origin_Discrete_Node_Normal(j, :));                         % 【结构源】表面第 j 个离散节点的法向向量
 %         theta_ij = acos(dot(r_difference, normal_j) / r_distance);          % 位置矢量差(新的向量)与【结构源】表面第 j 个离散节点法向向量的夹角
-        theta_ij = acos(min(1,max(-1,dot(r_difference, normal_j) / r_distance)));
+        theta_ij = acos(min(1, max(-1, dot(r_difference, normal_j) / r_distance)));
         Equiv_D(i,j) = - 1 / (4 * pi) * (1j * k * r_distance - 1) / r_distance^2 * exp(1j * k * r_distance) * cos(theta_ij);    % 声偶极矩阵
     end
 end
