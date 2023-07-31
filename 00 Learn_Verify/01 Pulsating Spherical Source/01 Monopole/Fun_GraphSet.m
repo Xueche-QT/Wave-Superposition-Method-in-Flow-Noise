@@ -11,15 +11,15 @@
  *              YLabel                          纵轴标签                              字符串
  *              ZLabel                          竖轴标签                              字符串
  *              Title                           图谱标题                              字符串
- *              Axis_Option                     判断是否加载网格线                    bool
+ *              Axis_Option                     判断是否加载网格线                     bool
  *                  true    axis equal          三轴缩放系数相同
  *                  flase                       三轴缩放系数默认
- *              X_Min                           横轴最小值【可选】                    double
- *              X_Max                           横轴最大值【可选】                    double
- *              Y_Min                           纵轴最小值【可选】                    double
- *              Y_Max                           纵轴最大值【可选】                    double
- *              Z_Min                           竖轴最小值【可选】                    double
- *              Z_Max                           竖轴最大值【可选】                    double
+ *              X_Min                           横轴最小值【可选】                     double
+ *              X_Max                           横轴最大值【可选】                     double
+ *              Y_Min                           纵轴最小值【可选】                     double
+ *              Y_Max                           纵轴最大值【可选】                     double
+ *              Z_Min                           竖轴最小值【可选】                     double
+ *              Z_Max                           竖轴最大值【可选】                     double
  *
  * @Output:     
  * 
@@ -33,7 +33,7 @@ function [] = Fun_GraphSet(XLabel, YLabel, ZLabel, Title, Axis_Option, X_Min, X_
     xlabel(XLabel);
     ylabel(YLabel);
 
-    if ~exist('ZLabel', 'var') || strcmp(ZLabel, 'n')                     % 未指定【横轴最小值】
+    if ~exist('ZLabel', 'var') || strcmp(ZLabel, 'n')                   % 未指定【横轴最小值】
         
     else
         zlabel(ZLabel);

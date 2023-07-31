@@ -5,14 +5,14 @@
  * ALL right reserved.See COPYRIGHT for detailed Information.
  *
  * @File:       PulasatingSphereMonopole.m
- * @Brief:      1. 以【球体】为研究对象，导入[节点坐标](分三种节点密度：58、87、123)
+ * @Brief:      1. 以【脉动球源】为研究对象，导入[节点坐标](分三种节点密度：58、87、123)
  *              2. 基于【点云处理】计算得到节点[外法向量]，并进行可视化
  *              3. 基于【解析式】求解【脉动球源】辐射声压(距离、波数)
  *              4. 基于【波叠加法】求解【脉动球源】辐射声压(距离、波数)
  *              5. 对比【解析式】和【波叠加法】计算结果
  *
  * @Author:     Haiger
- * @date:       2023.06.12
+ * @date:       2023.07.26
  *=======================================================================================
 %}
 
@@ -85,7 +85,7 @@ OriginPoint_Normals_Array = pcnormals(ptCloud);                                 
 centroid = mean(ptCloud.Location, 1);                                                                   % 计算点云的中心
 vectors = centroid - ptCloud.Location;                                                                  % 计算从每个点到中心的向量
 dotProduct = sum(vectors .* OriginPoint_Normals_Array, 2);                                              % 计算向量和法向量的点积
-OriginPoint_Normals_Array(dotProduct > 0, :) = -OriginPoint_Normals_Array(dotProduct > 0, :);           % 取反指向中心的法向量
+OriginPoint_Normals_Array(dotProduct > 0, :) = - OriginPoint_Normals_Array(dotProduct > 0, :);          % 取反指向中心的法向量
 
 scale = 0.1;                                                                                            % 法向量(箭头)缩放系数
 
@@ -133,7 +133,7 @@ P_Distance = zeros(FieldPoints_Num, 1);                                         
 
 % 计算【解析解】辐射声压(距离)
 for i = 1 : FieldPoints_Num                                                                             % 遍历各个测点
-    r_i = norm(FieldPoints(i));                                                                         % 测点与【脉动球源】球心的距离
+    r_i = norm(FieldPoints(i, :));                                                                         % 测点与【脉动球源】球心的距离
     P_Distance(i) = (k_Origin * Density_Medium * AcousticVelocity_Medium * Velocity_Amplitude * Sphere_Radius^2) / (1i + k_Origin * Sphere_Radius) * exp(1i * k_Origin * (r_i - Sphere_Radius)) / r_i;       % 解析解
 end
 
@@ -240,18 +240,21 @@ plot(FieldPoints(:, 1), abs(P_Distance), 'LineWidth', 1.5);
 hold on;
 Fun_MultiPlot2(1, FieldPoints(:, 1), abs(Equiv_P_Radiation), '离球心的距离 (m)', '声压幅值 (Pa)', '图5.2 结构辐射声压幅值对比(距离)', false, 10 * Sphere_Radius, 20 * Sphere_Radius, 'n', 'n', '--', 'r', 1.5);
 hold off;
+legend('解析解','波叠加法');
 
 subplot(2, 2, 3);                                                                                       % 图(5.3) 结构辐射声压实部对比(距离)
 plot(FieldPoints(:, 1), real(P_Distance), 'Color', '#8b7d6b', 'LineWidth', 1.5);
 hold on;
 Fun_MultiPlot2(1, FieldPoints(:, 1), real(Equiv_P_Radiation), '离球心的距离 (m)', '实部声压 (Pa)', '图5.3 结构辐射声压实部对比(距离)', false, 10 * Sphere_Radius, 20 * Sphere_Radius, 'n', 'n', '--', 'r', 1.5);
 hold off;
+legend('解析解','波叠加法');
  
 subplot(2, 2, 4);                                                                                       % 图(5.4) 结构辐射声压虚部对比(距离)
 plot(FieldPoints(:, 1), imag(P_Distance), 'Color', '#5f9ea0', 'LineWidth', 1.5);
 hold on;
 Fun_MultiPlot2(1, FieldPoints(:, 1), imag(Equiv_P_Radiation), '离球心的距离 (m)', '虚部声压 (Pa)', '图5.4 结构辐射声压虚部对比(距离)', false, 10 * Sphere_Radius, 20 * Sphere_Radius, 'n', 'n', '--', 'r', 1.5);
 hold off;
+legend('解析解','波叠加法');
 
 Equiv_P_kRange = zeros(size(k_Range));
 
@@ -279,15 +282,18 @@ plot(k_Range, abs(P_kRange), 'LineWidth', 1.5);
 hold on;
 Fun_MultiPlot2(1, k_Range, abs(Equiv_P_kRange), '波数 k', '声压幅值 (Pa)', '图6.2 结构辐射声压幅值对比(波数)', false, min(k_Range), max(k_Range), 'n', 'n', '--', 'r', 1.5);
 hold off;
+legend('解析解','波叠加法');
 
 subplot(2, 2, 3);                                                                                       % 图(6.3) 结构辐射声压实部对比(波数)
 plot(k_Range, real(P_kRange), 'Color', '#8b7d6b', 'LineWidth', 1.5);
 hold on;
 Fun_MultiPlot2(1, k_Range, real(Equiv_P_kRange), '波数 k', '实部声压 (Pa)', '图6.3 结构辐射声压实部对比(波数)', false, min(k_Range), max(k_Range), 'n', 'n', '--', 'r', 1.5);
 hold off;
+legend('解析解','波叠加法');
 
 subplot(2, 2, 4);                                                                                       % 图(6.4) 结构辐射声压虚部对比(波数)
 plot(k_Range, imag(P_kRange), 'Color', '#5f9ea0', 'LineWidth', 1.5);
 hold on;
 Fun_MultiPlot2(1, k_Range, imag(Equiv_P_kRange), '波数 k', '虚部声压 (Pa)', '图6.4 结构辐射声压虚部对比(波数)', false, min(k_Range), max(k_Range), 'n', 'n', '--', 'r', 1.5);
 hold off;
+legend('解析解','波叠加法');

@@ -17,17 +17,17 @@
  *              YLabel                          纵轴标签                              字符串
  *              ZLabel                          竖轴标签                              字符串
  *              Title                           图谱标题                              字符串
- *              Axis_Option                     判断是否加载网格线                    bool
+ *              Axis_Option                     判断是否加载网格线                     bool
  *                  true    axis equal          三轴缩放系数相同
  *                  flase                       三轴缩放系数默认
- *              X_Min                           横轴最小值【可选】                    double
- *              X_Max                           横轴最大值【可选】                    double
- *              Y_Min                           纵轴最小值【可选】                    double
- *              Y_Max                           纵轴最大值【可选】                    double
- *              Z_Min                           竖轴最小值【可选】                    double
- *              Z_Max                           竖轴最大值【可选】                    double
- *              Size                            散点大小【可选】                      double
- *              Color                           散点或曲面颜色【可选】                字符串
+ *              X_Min                           横轴最小值【可选】                     double
+ *              X_Max                           横轴最大值【可选】                     double
+ *              Y_Min                           纵轴最小值【可选】                     double
+ *              Y_Max                           纵轴最大值【可选】                     double
+ *              Z_Min                           竖轴最小值【可选】                     double
+ *              Z_Max                           竖轴最大值【可选】                     double
+ *              Size                            散点大小【可选】                       double
+ *              Color                           散点或曲面颜色【可选】                 字符串
  *              MarketType                      散点形状【可选】                      字符串
  *                  '+'                         加号符
  *                  'o'                         空心圆
@@ -45,7 +45,7 @@
  *                  'pentagram'                 五角星
  *                  'hexagram'                  六边形
  *                  'none'                      无标记
- *              Filled_Option                   是否填充散点【可选】                  bool
+ *              Filled_Option                   是否填充散点【可选】                    bool
  *                  true    'filled'            填充
  *                  false                       不填充
  *

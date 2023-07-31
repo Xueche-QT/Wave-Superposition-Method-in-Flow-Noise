@@ -5,13 +5,13 @@
  * ALL right reserved.See COPYRIGHT for detailed Information.
  *
  * @File:       Fun_BuildEquiv_D_Q.m
- * @Brief:      
- *              [文献：]
- *              1. 
+ * @Brief:      求解[声偶极矩阵]和[源强度矩阵]
  * 
  * @Input:      Origin_Discrete_Node_Coord      【结构源】表面离散X、Y、Z坐标        N×3数组
  *              Equiv_Simple_Source_Coord       【等效简单源】X、Y、Z坐标            M×3数组
  *              k                               波数
+ *              U_normal                        【结构源】表面离散节点法向振速幅值    N×1数组
+ *              Origin_Discrete_Node_Normal     【结构源】表面离散节点外法向向量      N×3数组
  * 
  * @Output:     Equiv_D                         声偶极矩阵
  *              Equiv_Q                         源强度矩阵

@@ -15,13 +15,13 @@
  *              XLabel                          横轴标签                              字符串
  *              YLabel                          纵轴标签                              字符串
  *              Title                           图谱标题                              字符串
- *              Grid_Option                     判断是否加载网格线                    bool
+ *              Grid_Option                     判断是否加载网格线                     bool
  *                  true    grid on             加载网格线
  *                  flase   grid off            不加载网格线
- *              X_Min                           横轴最小值【可选】                    double
- *              X_Max                           横轴最大值【可选】                    double
- *              Y_Min                           纵轴最小值【可选】                    double
- *              Y_Max                           纵轴最大值【可选】                    double
+ *              X_Min                           横轴最小值【可选】                     double
+ *              X_Max                           横轴最大值【可选】                     double
+ *              Y_Min                           纵轴最小值【可选】                     double
+ *              Y_Max                           纵轴最大值【可选】                     double
  *              Linetype                        线型                                  字符串
  *                  '-'                         实线
  *                  '--'                        双划线
