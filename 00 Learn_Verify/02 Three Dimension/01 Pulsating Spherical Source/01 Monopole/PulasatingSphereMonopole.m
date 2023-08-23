@@ -187,8 +187,8 @@ Fun_MultiPlot2(1, k_Range, imag(P_kRange), '波数 k', '虚部声压 (Pa)', '图
 
 EquivSource_Index_Array = OriginPoint_Num_Array;                                                        % 【等效简单源】索引
 EquivSource_X_Array = Scale_Factor .* OriginPoint_X_Array;                                              % 【等效简单源】X坐标
-EquivSource_Y_Array = Scale_Factor .* OriginPoint_Y_Array;                                              % 【等效简单源】X坐标
-EquivSource_Z_Array = Scale_Factor .* OriginPoint_Z_Array;                                              % 【等效简单源】X坐标
+EquivSource_Y_Array = Scale_Factor .* OriginPoint_Y_Array;                                              % 【等效简单源】Y坐标
+EquivSource_Z_Array = Scale_Factor .* OriginPoint_Z_Array;                                              % 【等效简单源】Z坐标
 EquivSource_Coord_Array = [EquivSource_X_Array, EquivSource_Y_Array, EquivSource_Z_Array];              % 【等效简单源】三轴坐标
 
 [x_EquivSphere,y_EquivSphere,z_EquivSphere] = sphere;                                                   % 生成半径为1的球体模型，便于显示离散点
